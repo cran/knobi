@@ -1,0 +1,479 @@
+---
+title: "knobi"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{knobi}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(knobi)
+```
+
+In this vignette we illustrate the use of the `knobi` package through a real case example. For this purpose, the formulation of the Known Biomass Production Models (KBPMs) is explained and then each of the functions of the package is described and applied to a real case study.
+
+Please note that this vignette does not cover all possibilities for each function in this package (i.e., not all arguments or combinations of arguments are used). Instead, it focuses on describing the basic usage of the functions, with some alternatives included for certain functions. For more detailed information, please refer to the help documentation for each function in the package.
+
+
+## 1. KBPM formulation
+
+For a correct understanding of KBPM models, we start reviewing the surplus production models (SPMs) framework and then based on this background the KBPM formulation is described.
+
+&nbsp;
+
+Traditional SPMs are one of the most widely used data-limited (or data moderated) assessment models. Their general structure relates directly to Russell’s formulation of the stock dynamics:
+
+$$B_{t+1}=B_t + f(B_t)-C_t$$ Eq. (1)
+
+where *B<sub>t</sub>* is the stock biomass at the beginning of year *t*, *C<sub>t</sub>* is the biomass caught during year *t* and *f(B<sub>t</sub>)* is the biomass production function.
+
+There are many formulations of the biomass production function *f(B<sub>t</sub>)*, among which the general Pella-Tomlinson (1969) is widely used:
+
+$$f(B_t) = \frac{r}{p}{B_{t}} \left(1-\left( \frac{B_{t}}{K}\right) ^{p}\right)$$ Eq. (2)
+
+where *r* is the intrinsic population growth rate, *K* is the carrying capacity and *p* is the asymmetry parameter, which allows non-symmetrical production curves and, consequently, maximum production different from *K/2*. Schaefer (1954) model corresponds to *p=1* (symmetric production curve and $SP_{max}=K/2$).
+
+SPMs link the population dynamics, i.e. Eq. (1) with the observations through the relation between the catch and the stock biomass across the catchability coefficient (*q*). 
+
+$$\hat{I}_t=C_t/E_t=qB_t$$
+where *I<sub>t* is the value of the relative biomass index for year *t*, notation *ˆ* denotes an estimated value and *q* is the catchability coefficient, which scales the modeled stock biomass to match the trends in catch rates.
+
+An alternative line of research based on surplus production models named known-biomass production models (KBPM) was developed (MacCall, 2002). The basis of the KBPM model is the idea that the annual surplus production in an unfished stock is equal to *B<sub>t+1</sub>-B<sub>t*, and that, for a fished stock, the calculation of surplus production depends on catch. 
+
+$$SP_t=\overline{B}_{t+1}-\overline{B}_t+C_t$$  Eq. (3)
+
+where *SP<sub>t</sub>* is the surplus production during year *t*, *<SPAN STYLE="text-decoration:overline">B</SPAN><sub>t</sub>* is the average biomass or SSB, *<SPAN STYLE="text-decoration:overline">B</SPAN><sub>t</sub>=(B<sub>t</sub>+B<sub>t+1</sub>)/2*, and *C<sub>t</sub>* represents the catch during year *t*.
+
+In contrast to the traditional SPMs, KBPMs use as input data a biomass time series, estimated using another stock assessment model, instead of a biomass index. 
+
+Once the surplus production is calculated using the known average biomass (of two consecutive years) and the observed catch, the KBPMs are fitted as:
+
+$$SP_{t}= \frac{r}{p}\overline{B}_{t}\left(1-\left( \frac{\overline{B}_{t}}{K}\right) ^{p}\right)$$ Eq. (4)
+
+
+## 2. `knobi` package ##
+
+In this section the `knobi` package functions are described. More precisely, in each one of the next subsections the following package functions are explained:
+
+1. `knobi_fit`: fits the KBPM model (main function).
+
+2. `knobi_env`: analyzes the production changes in response to environmental fluctuations.
+
+3. `knobi_retro`: carries out the retrospective analysis.
+
+4. `knobi_proj`: projects the population and fishery dynamics.
+
+
+### 2.1. `knobi_fit` ###
+
+This section illustrates the use of the `knobi_fit` function, which allows us to fit the KBPM model. 
+
+For that, the case study of European hake ($Merluccius$ $merluccius$) is used. European hake is a resource of great commercial importance in Atlantic Iberian Waters. This species is assessed by the International Council for the Exploration of the Sea (ICES) in two units: the northern and the southern stocks. For the current illustration we focus on the northern hake unit which covers the subareas 4, 6, and 7, and divisions 3.a, 8.a–b, and 8.d (Greater North Sea, Celtic Seas, and the northern Bay of Biscay).
+
+
+
+#### Creating `data` argument ####
+
+The first step is to create the `data` input object.
+
+The data was downloaded using the `icesSAG` package and saved in the `knobi_dataset` under the `hake_n` object.
+
+```{r}
+data( knobi_dataset)
+hake_n <- knobi_dataset$hake_n
+```
+
+Then the `data` list for `knobi_fit` is created. Mandatory data are the catch time series and the biomass or SSB time series. However, in this example we also include some additional available information.
+
+As you can see, in the code below, the data input argument is created. Firstly we introduce both, the biomass and spawning stock biomass (SSB) series, then below in the `control` argument we indicate which of the two series is used in the fit. After that, in the next line of code, we introduce the second data source which are the catches. After introducing the two main sources of information, we can add more details that are used mainly for comparing KBPM results with those derived from the assessment model that produced the SSB estimates (a data-rich model). In this particular case, we add the recruitment series, the value of the reference point $F_{msy}$ and the years associated to the observed catch time series (if omitted, an increasing sequence from 1 onward will be used).
+
+Details about the optional entries of this argument can be found on the help page.
+
+```{r}
+data <- list(
+  SSB = hake_n$SSB, 
+  Catch = hake_n$catches,
+  F_input = hake_n$F, 
+  Recruitment = hake_n$recruitment,
+  RP = list( F_MSY = 0.26),           # Provided by ICES        
+  years = hake_n$Year )
+```
+
+
+#### Creating `control` object ####
+
+`control` list contains a set of settings for the KBPM fit. In this example. it includes the argument `pella`, which is an optional logical argument where "TRUE" means that Pella-Tomlinson model is fitted instead of the Schaefer one.
+
+&nbsp;
+
+```{r}
+control <- list( pella = "TRUE")
+```
+
+There is the possibility of defining other `control` settings such as `start_r`, `start_K` or `start_p`, optional start values of the model parameters $r$ (intrinsic growth rate), $K$ (maximum population size) and $p$ (shape parameter in Pella-Tomlinson model), respectively.
+
+
+#### KBPM model fit ####
+
+After preparing both lists, `data` and `control`, we can apply the `knobi_fit` function over them for fitting the KBPM model. 
+
+In addition to the arguments mentioned above, the `plot_out=TRUE` argument allows the creation of an external folder with the corresponding plots files also displayed in the plot window. We can set the folder name and its directory through the `plot_filename` and the `plot_dir` arguments, respectively.
+
+
+```{r,eval=FALSE}
+hake_n_results <- knobi_fit( data = data, 
+                             control = control,
+                             plot_out = FALSE)
+```
+
+Note that if the length of the input catch time series does not match with the SSB length, a warning is returned indicating that the series of catch is reduced so that the fit can be done.
+
+```{r,echo=FALSE, fig.show='hide'}
+hake_n_results <- knobi_fit( data, control, plot_out=FALSE)
+```
+
+As you can see, the following input quantities are plotted: fishing mortality time series, SSB, surplus production and catch time series. Note that in this example we are using `control$method=SSB`, which means that we are going to operate with the SSB and not with the stock biomass. Plots of catch over fishing mortality, fishing mortality over SSB, and catch over SSB time series with a smooth line from a "loess" regression are also displayed. Plot of input-output time series of fishing mortality is also provided with horizontal lines at fishing mortalities at MSY (two lines representing both input and output). The fishing mortality relative to $F_{msy}$ is also plotted including a reference horizontal line at 1. The analogous SSB plots are also reported. It is important to mention that, in these cases, inputs are represented in blue and outputs in red, highlighting the case of the SSB, where the absolute value is an input of the model, while the relative SSB (SSB/SSBmsy) depends on the estimation of the reference point, so it is represented in red as well. On the other hand, the fitted surplus production curve is plotted twice with the SSB and SP observations (first plot) and with the catch and SP observations (second plot). Finally, a plot with the KBPM fit residuals is shown.
+
+```{r, echo=FALSE, warning=FALSE,  fig.width=6, fig.height=4, fig.align = 'center'}
+hake_n_results <- knobi_fit( data, control, plot_out=FALSE)
+```
+
+
+#### Quantitative results ####
+
+The formula and the parameter estimates of the fit are printed running the name of the output object.
+
+```{r}
+hake_n_results
+```
+
+
+The `hake_n_results` object is a list containing the following slots: (1) `params`, that is the estimated parameters in the fit; (2) `BRPs`, that are the biological reference points estimates; (3) the `residuals` of the fit; (4) an `error_table` with the error measures (5) the `input` list which is an updated version of its input including the annual average biomass, the surplus production and the F estimated time series; (6)  the `control` output which is the input one updated with the information of the plot settings; and (7) the `optimx` slot with the results provided by the optimizing function. See the help page for a more completed description.
+
+```{r}
+hake_n_results$BRPs
+```
+
+
+### 2.3. `knobi_env` ###
+
+After carrying out the KBPM fit using `knobi_fit`, `knobi_env` function allows us to analyze and model the relationships between the surplus production and the environmental covariable(s) in order to test whether productivity changes in response to environmental fluctuations. The `knobi_env` procedure can be summarized in three steps:  
+
+1.  The correlation analysis between the environmental variable(s) and the KBPM residuals through the Pearson's correlation or autoregressive models; 
+2.  The selection of which lagged environmental variable(s) is included in the environmental KBPM models fit; 
+3.  The KBPM environmental fit.
+
+In step (3) environmental covariables can be included as additive and multiplicative effects in the KBPM base formulation, i.e. in Eq. (4).
+
+* Additive model:
+
+$$SP_{t}= \frac{r}{p}\overline{B}_{t}\left(1-\left( \frac{\overline{B}_{t}}{K}\right) ^{p}\right) + cX_{t-lag}\overline{B}_{t}$$ Eq. (5)  
+
+being *c* the parameter that represent the effect of the lagged environmental variable *X<sub>t-lag</sub>* (*t* index represents years and $lag$ represent the response variable $lag$, as explained below).
+
+* Multiplicative model:
+
+$$SP_{t}= \frac{r}{p}\overline{B}_{t}\left(1-\left( \frac{\overline{B}_{t}}{K}\right) ^{p}\right)exp^{cX_{t-lag}}$$ Eq. (6)
+
+
+`knobi_env` inputs are the object returned by `knobi_fit` and a `data` object containing, at least, the mandatory environmental information required for the fit: the `env` argument, which is a data frame containing the values of each one of the environmental variable(s) in one column; and the `years` argument, which contains the years in which the environmental variable(s) are reported.
+
+In the following example, we create a data frame in which we introduce the years in which the environmental variables are available, which is from 1973 to 2020. Then, we create two columns containing the values of Atlantic Multidecadal Oscillation (AMO) and the North Atlantic Oscillation (NAO) indices. Finally, we cut the data frame for starting in the first year of the KBPM fit data minus the value of the `nlag` or `lag` argument (below, a detailed explanation of this argument is provided).
+
+
+```{r}
+Env <- knobi_dataset$Env
+nlag <- 5
+years <- hake_n_results$df$Year
+
+ind <- which(Env[,1]==years[1])
+ind1 <- which(Env[,1]==years[length(years)])
+
+Env <- Env[(ind-nlag):ind1,]
+```
+
+Now, we create the `data` list
+
+```{r}
+data <- list(
+  env = data.frame( AMO=Env$AMO, NAO=Env$NAO),
+  years = Env$years)
+```
+
+In the optional `control` input list we provide the settings for the environmental fit. In this example, we set `nlag=5`. This argument specifies the maximum lag of the environmental variable to test in the correlation analysis, meaning that lags less than or equal to `nlag` (a natural number) are evaluated. This means that correlation between KBPM residuals at time *t* and *X<sub>t-lag</sub>*, where *X* the environmental variable and *lag* takes values from 0 to `nlag`, is computed. The lagged environmental variable corresponding to the highest correlation with the KBPM residuals is included in the environmental model.
+
+
+```{r}
+control <- list( nlag = nlag)
+```
+
+Based on the arguments defined above, we apply the function as you can see below. Note that it reports a plot of the correlation analysis between the environmental variable(s) and the base KBPM residuals. Besides, a plot of the fitted values of the base model (no environmental information) and  the environmental ones is also displayed. At last, a plot with the Pearson's residuals for each KBPM model is also reported.
+
+
+```{r,eval=FALSE}
+hake_n_environmental <- knobi_env(knobi_results = hake_n_results, 
+                                  data = data,    
+                                  control = control,
+                                  plot_out = FALSE)
+```
+
+```{r,echo=FALSE,  fig.width=6, fig.height=4, fig.align = 'center'}
+hake_n_environmental <- knobi_env(hake_n_results,data,control)
+```
+
+
+#### Quantitative results ####
+
+Running the name of the output object the formula and the parameters estimates for both environmental models fit are printed.
+
+```{r}
+hake_n_environmental
+```
+
+A detailed description of each slot of the output function's object is available in the help page. The output object contains the parameter estimates for both models and its reference points estimates, the accuracy measures for each model and the correlation analysis between the environmental variable(s) and the KBPM base residuals, among other results.
+
+From Eq. (5) and Eq. (6) we can derive the formulas that provide the reference points (BRPs). It is important to take into account that in these models the BRPs depend on the value of the environmental covariate (details provided below for each model).
+
+In the case of these environmental models, the estimated BRPs correspond to a value of the scaled environmental variable equal to the mean of the time series, i.e. $X_t=0$, which cancels out the effect of the parameter $c$. The estimates of the remain parameters included in the Eq. (2), and therefore for the BRPs as well, will be different from the base model ones because the fact of having included the environmental effect in the equations had an impact on the estimation of the curve.
+
+The mathematical formulation of the BRPs estimates for each KBPM model depending on the centered environmental variable are:
+
+* In the case of the multiplicative model
+
+$$B_{msy}(X)=K\left(\frac{1}{p+1}\right)^{1/p}$$
+$$F_{msy}(X)=\frac{r}{p}\left(1-\frac{1}{p+1}\right) cX$$
+$$MSY(X)=B_{msy}(X)*F_{msy}(X)$$
+$$K(X)=K$$
+
+where *r*, *p*, *K* and *c* are the model parameter estimates of the additive and multiplicative environmental models, i.e. Eq. (5) and Eq. (6) respectively; and *X* the centered environmental variable.
+
+
+* In the case of the additive model
+
+$$B_{msy}(X)=K\left(\frac{p c X+r}{r(p+1)}\right)^{1/p}$$
+$$F_{msy}(X)=\frac{r}{p}\left(1-\frac{1}{p+1}\right)-\frac{cX}{p+1}+cX$$
+$$MSY(X)=B_{msy}(X)*F_{msy}(X)$$
+$$K(X)=K+cX$$
+
+where *r*, *p*, *K* and *c* are the model parameter estimates of the Eq. (5) and Eq. (6) and *X* the centered environmental variable.
+
+For simplicity, the output slot `$BRPs` provides the BRPs estimates for a value of the centered environmental variable  equal to the mean of the time series, i.e. \eqn{X_{t}=0}, which cancels out the environmental effect in the equations defining both models, i.e. the effect of the parameter \eqn{c}.
+
+```{r}
+hake_n_environmental$BRPs
+```
+
+
+
+
+#### More options ####
+
+There is the possibility of obtaining 3D plots reporting the surplus production curve conditioned to a grid of environmental values using the argument `control$plot3d=TRUE`. In this case, a list named `plots3D` is added to the output list of `knobi_env` with the 3D plots objects.
+
+```{r, eval=FALSE}
+control$plot3d = TRUE
+knobi_env( hake_n_results, data, control)
+```
+
+There is also the possibility of fixing which lag is used  in the relation among the surplus production and the environmental variable, for that the  `lag` argument is used instead of `nlag` inside `control` as you can see below
+
+Furthermore, it is also possible to fit the environmental models considering several variables at the same time using `control$multicovar = TRUE`. This means that *cX<sub>t</sub>* is replaced by $\sum_{i=1}^{N} c_i X_{t,i}$ in Eq. (5) and Eq. (6), where index *N* represents the number of environmental variables.
+
+Below you can see how we introduce the same data set as in previous examples but in the control we set `multicovar=TRUE` so that the two variables, “AMO” and “NAO”, are considered in the environmental fit. Note that “AMO” is 2 years lagged whereas “NAO” is 3 years lagged respect the SP.
+
+```{r, fig.width=6, fig.height=4, fig.align = 'center'}
+control <- list( lag=c(2,3), multicovar=TRUE)
+hake_n_multi <- knobi_env( hake_n_results, data, control)
+```
+
+
+Finally, there is also the possibility of testing the correlation between the KBPM residuals and the environmental variable(s) through the fit of autoregressive models (AR models). In this case, firstly an AR model is fitted for the residuals in order to determine how the residuals can explain themselves:
+
+$$ r_t=\sum_{i=1}^{\rho}\beta_{i}r_{t-i}+\epsilon_{t}$$
+
+being *r<sub>t</sub>* the KBPM base residual for year *t* and $\rho$ the AR model order, estimated as the maximum time lag at which the absolute value of the residuals partial autocorrelation is large than *qnorm(0.975)<SQRT>N<sub>r</sub></SQRT>* being *N<sub>r</sub>* the length of the residuals series.
+
+Then, AR models are fitted considering each one of the lagged environmental variable(s),
+
+$$r_{t,lag}=\sum_{i=1}^{\rho}\beta_{i}r_{t-i}+X_{t-lag}+\epsilon_{t}$$
+
+for *lag=0,1,...,nlag*, being *X<sub>t-lag</sub>* the lagged environmental variable at year *t-lag*. Then, we have an autoregressive model for each of the lagged environmental variables. The AIC values of the above models are compared, and the lagged environmental variable whose model reports the lowest AIC is used in the KBPM fit, except if the argument 'lag' is used.
+
+This test procedure is carried out using the argument `ar_cor = TRUE` in `control` list as you can see below. 
+
+```{r, fig.width=6, fig.height=4, fig.align = 'center'}
+control_ar <- list( nlag=3, ar_cor=TRUE)
+hake_env_ar <- knobi_env( hake_n_results, data = data, control = control_ar)
+```
+
+A plot with the AIC values for each model is also represented. In the output object `env_aic` represents the AIC values for each AR model and `selected_lag` represent the lag corresponding to the model with the lowest AIC.
+
+```{r}
+hake_env_ar$env_aic
+```
+
+```{r}
+hake_env_ar$selected_lag
+```
+
+
+
+### 2.3. `knobi_retro` ###
+
+Once the KBPM fit is carried out using `knobi_fit` function, its robustness to the deletion of data is tested using the `knobi_retro` function.
+
+`knobi_retro` input is the object returned by `knobi_fit` and the selected retrospective models. In this example, these models are specified by the `nR` argument, with a value of 5 (that is also the default value). This means that the first retrospective model considers the data deleting the last year and fits the surplus production curve, the next model deletes the two last years of the original data set and fits the SP curve, and then the process continues in this way until the last model is reached in which the last 5 years in the original data are deleted to then fit the curve.
+
+```{r,eval=FALSE}
+hake_n_retros <- knobi_retro( knobi_results = hake_n_results,         
+                              nR = 5,            
+                              plot_out = FALSE)
+```
+
+The estimated surplus production curves from the retrospective analysis are plotted. The plot is displayed in the plot window and also saved if `plot_out=T` in the provided directory and file.
+
+```{r,echo=FALSE,  fig.width=6, fig.height=4, fig.align = 'center'}
+hake_n_retros <- knobi_retro( hake_n_results, nR=5, plot_out=FALSE)
+```
+
+#### Quantitative results ####
+
+The `knobi_retro` output is a list containing the retrospective analysis, that includes the parameter estimates and the reference points for each one of the models.
+
+```{r}
+hake_n_retros
+```
+
+There is also another possibility for choosing the years to consider in each one of retrospective models. The `yR` argument specifies the final years of the catch time series for each of the retrospective models, providing greater flexibility in choosing the years from which to delete information. The number of retrospective fits will correspond to the length of the `yR` vector. Additionally, different starting years can be set using the `yR0` argument.
+
+Below, there are two examples of the use of these arguments. In the first example, the retrospective models are fitted from the first year available in the time series (which is the year 1978) up to the years defined by `yR`(2005, 2010 and 2015), while in the second example the models fit from the years contained in `yR0` up to the years included in `yR`, i. e. , 1990 to 2005, from 1995 to 2010 and from 1995 to 2015.
+
+```{r,  fig.width=6, fig.height=4, fig.align = 'center'}
+knobi_retro( hake_n_results, 
+             yR = c(2005,2010,2015))
+```
+
+```{r,  fig.width=6, fig.height=4, fig.align = 'center'}
+knobi_retro( hake_n_results,
+             yR = c(2005,2010,2015),
+             yR0 = c(1990,1995,1995))
+```
+
+The environmental fit information can be considered too in the retrospective analysis through the `env_results` argument, where the result of the `knobi_environmental` function has to be provided. For environmental models, both the estimated BRPs and the plotted production curve correspond to a value of the scaled environmental variable equal to the mean of the time series, i.e. $X_t=0$, which cancels out the environmental effect in the equations defining both models as it has been explained in the `knobi_env` function help's details. In this case a panel of plots is provided, where each graph corresponds with a different model.
+
+```{r,  fig.width=6, fig.height=4, fig.align = 'center'}
+knobi_retro(hake_n_results, hake_n_environmental, nR = 3); hake_n_retros
+```
+
+```{r,  fig.width=6, fig.height=4, fig.align = 'center'}
+knobi_retro( hake_n_results, hake_n_multi,
+             yR = c(2005,2010,2015),
+             yR0 = c(1990,1995,1995))
+```
+
+
+
+### 2.4. `knobi_proj` ###
+
+`knobi_proj` function projects the time series of biomass (or spawning biomass) and then the surplus production for a set of future catch or fishing mortality values.
+
+One of the `knobi_proj` arguments is a data frame containing the selected catch for the projected years. In this case three catch scenarios are considered: (i) constant catch value equal to the last historical catch, (ii) last historical catch with a 20% increase; and (iii) last historical catch with a 20% decrease.
+
+```{r}
+catch <- rep(hake_n_results$input$Catch[length(hake_n_results$input$Catch)],8)
+C <- data.frame(catch=catch, catch08=0.8*catch, catch12=1.2*catch)
+```
+
+
+The resulting plots are displayed in the plot window. In this example, four plots are presented in a panel reporting the SSB, surplus production, catch and fishing mortality projections for each catch catch scenario. Note that, in this case, `plot_out = FALSE` (by default), then plots are not saved like in the previous examples.
+
+Then, on the basis of the above catch scenarios and the `hake_n_results` object, the projections are carried out.
+
+
+```{r,  fig.width=6, fig.height=4, fig.align = 'center'}
+projections <- knobi_proj( knobi_results=hake_n_results, c=C)
+```
+
+
+#### Quantitative results ####
+
+Running the name of the output object the data frame with the projections for each scenario are printed. Details of the additional output information are provided in the help page.
+
+```{r}
+projections
+```
+
+
+#### With environmental information ####
+
+There is the possibility of considering the environmental information in the projections. For this purpose, the `knobi_env` output and the new environmental values for the future years `env` argument must be provided.
+
+In the current example, three scenarios are considered: (i) Constant AMO equal to last year's AMO; (ii) constant AMO equal to last year's AMO with a 50% increment; and (iii) constant AMO equal to last year's AMO with a 50% decrease.
+
+
+
+```{r}
+last_AMO <- Env$AMO[length(Env$AMO)]
+env <- data.frame( AMOi=rep(last_AMO,5),
+                   AMOii=rep(last_AMO*1.5,5),
+                   AMOiii=rep(last_AMO*0.5,5))
+
+C <- C[(1:5),]
+```
+
+Note that, as shown below, in this case, in addition to the plot with the results from the base KBPM model, additional plots are provided: (1) panels for each catch or fishing mortality scenario, depending on the model and environmental scenario; and (2) the same information, but now presented by each environmental scenario, depending on the model and catch or fishing mortality.
+
+```{r,  fig.width=6, fig.height=4, fig.align = 'center'}
+env_projections <- knobi_proj(hake_n_results, hake_n_environmental, c=C, env=env)
+env_projections
+```
+
+The output list also contains the projections for each of the scenarios catches and environmental scenarios. Details of the output are available in the help page.
+
+
+#### Forecast via fishing mortality ####
+
+Alternatively, projections can be based on fishing mortality. The scenarios presented below have been created from the estimated *F<sub>msy</sub>* in the `knobi_fit` analysis.
+
+```{r, fig.width=6, fig.height=4, fig.align = 'center'}
+fmsy <- hake_n_results$BRPs['F_MSY']
+ff <- rep(fmsy,5)
+f <- data.frame( f=ff, f12=ff*1.2, f08=ff*0.8)
+
+f_projections <- knobi_proj( hake_n_results, f=f, env_results=hake_n_environmental, env=env)
+f_projections
+```
+
+
+#### Case of considering multicovariate environmental models #### 
+
+In case of `multicovar=TRUE` in `knobi_env`, the `env` argument must be a list in which each item is a data frame containing the values of the variables for a specific environmental scenario. In the following scenario we have two scenarios, "climate_1" and "climate_2", and each of them we provide values of the two covariables, "AMO" and "NAO", which are the ones included in the environmental fit. 
+
+
+```{r, fig.width=6, fig.height=4, fig.align = 'center'}
+env <- list( climate_1 = data.frame( AMO=c(0.2,0.2,0.3,0.3,0.4),
+                                     NAO=c(0.2,0.2,0.3,0.3,0.4)),
+             climate_2 = data.frame( AMO=c(0.2,0.3,0.4,0.5,0.6),
+                                     NAO=c(0.2,0.3,0.4,0.5,0.6)))
+
+multiproj <- knobi_proj( hake_n_results, hake_n_multi, c=C, env=env)
+multiproj
+```
+
+
+
+## References ##
+
+Schaefer, M.B. (1954). Some Aspects of the Dynamics of Populations Important to the Management of the Commercial Marine Fisheries. Bulletin of the Inter-American Tropical Tuna Commission. 1:26-56.
+
+Pella, J.J., Tomlinson, P.K. (1969). A generalized stock-production model. Bulletin of the Inter-American Tropical Tuna Commission. 13:421–58.
+
+MacCall, A. (2002). Use of Known-Biomass Production Models to Determine Productivity of West Coast Groundfish Stocks. North American Journal of Fisheries Management, 22, 272-279.
