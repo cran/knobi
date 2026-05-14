@@ -119,7 +119,7 @@ control<-list(
 
 # Finally, we can fit the model
 
-knobi_results<-knobi_fit(data,control,plot_out=TRUE,plot_filename="results")
+knobi_results<-knobi_fit(data,control)
 # Note that a warning is shown for the reduction of the SSB vector 
 # so that the length is the same as the catch length
 

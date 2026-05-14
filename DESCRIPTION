@@ -1,7 +1,7 @@
 Package: knobi
 Type: Package
 Title: Known-Biomass Production Model (KBPM)
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(person("Anxo", "Paz", email = "anxo.paz@hotmail.com", role = c("aut", "cre")),
   person("Marta", "Cousido Rocha", email = "marta.cousido@ieo.csic.es", role = c("aut", "ths")),
   person("Santiago", "Cervino Lopez", email = "santiago.cervino@ieo.csic.es", role = c("aut", "ths")),
@@ -12,15 +12,16 @@ Encoding: UTF-8
 LazyData: true
 Imports: corrplot, ggplot2, gridExtra, grDevices, optimx, plot3D,
         stats, dplyr, tidyr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Suggests: knitr, rmarkdown, icesSAG
 VignetteBuilder: knitr, rmarkdown
 NeedsCompilation: no
-Packaged: 2025-06-06 09:38:36 UTC; apaz
+Packaged: 2026-05-14 11:40:22 UTC; apaz
 Author: Anxo Paz [aut, cre],
   Marta Cousido Rocha [aut, ths],
   Santiago Cervino Lopez [aut, ths],
   Maria Grazia Peninno [aut]
 Maintainer: Anxo Paz <anxo.paz@hotmail.com>
+Depends: R (>= 3.5.0)
 Repository: CRAN
-Date/Publication: 2025-06-10 13:20:02 UTC
+Date/Publication: 2026-05-14 12:10:02 UTC

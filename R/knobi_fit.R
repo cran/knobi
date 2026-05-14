@@ -118,7 +118,7 @@
 #'
 #' # Finally, we can fit the model
 #'
-#' knobi_results<-knobi_fit(data,control,plot_out=TRUE,plot_filename="results")
+#' knobi_results<-knobi_fit(data,control)
 #' # Note that a warning is shown for the reduction of the SSB vector 
 #' # so that the length is the same as the catch length
 #' 
@@ -308,13 +308,13 @@ knobi_fit <- function( data, control=NULL, plot_out=FALSE, plot_filename=NULL, p
 
   df_aux<-data.frame(av,bv)
   if(control$method=="Biomass"){
-    xtit<-"Surplus Production Curve and Observed Biomass and SP"
+    xtit<-"Surplus Production Curve and Observed SP over Biomass"
+    xtit2<-"Surplus Production Curve and Observed Catch over Biomass"
     xaxis<-"Biomass"
-    xleg<-"Observed biomass"
   } else {
-    xtit<-"Surplus Production Curve and Observed SSB and SP"
+    xtit<-"Surplus Production Curve and Observed SP over SSB"
+    xtit2<-"Surplus Production Curve and Observed Catch over SSB"
     xaxis<-"SSB"
-    xleg<-"Observed SSB"
   }
 
   vec<-min(df_aux$bv,df$y)
@@ -328,7 +328,7 @@ knobi_fit <- function( data, control=NULL, plot_out=FALSE, plot_filename=NULL, p
     ggplot2::geom_point(data=df,ggplot2::aes(x=x,y=y,color=Year)) +
     ggplot2::geom_path(data=df,ggplot2::aes(x=x,y=y,color=Year)) +
     ggplot2::labs(title=xtit,x =xaxis, y = "SP") +
-    ggplot2::guides(size="none",col=ggplot2::guide_legend(title=xleg)) +
+    ggplot2::guides(size="none",col=ggplot2::guide_legend(title="Observed SP")) +
     ggplot2::scale_color_gradient(breaks=c(Year[1],Year[length(Year)])) +
     ggplot2::theme(legend.position = c(.9,.85), legend.background = ggplot2::element_rect(fill = "transparent"),
                    plot.title = ggplot2::element_text(hjust = 0.5), plot.subtitle = ggplot2::element_text(hjust = 0.5),
@@ -364,7 +364,7 @@ knobi_fit <- function( data, control=NULL, plot_out=FALSE, plot_filename=NULL, p
          label=Year,vjust=-1), show.legend = FALSE) +
     ggplot2::geom_point(data=df,ggplot2::aes(x=x,y=C,color=Year)) +
     ggplot2::geom_path(data=df,ggplot2::aes(x=x,y=C,color=Year)) +
-    ggplot2::labs(title="Surplus Production Curve and Observed Catch and SP",
+    ggplot2::labs(title=xtit2,
                   x =xaxis, y = "SP") +
     ggplot2::guides(size="none",col=ggplot2::guide_legend(title="Observed Catch")) +
     ggplot2::scale_color_gradient(breaks=c(Year[1],Year[length(Year)])) +

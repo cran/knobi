@@ -77,7 +77,12 @@
 #'
 #' \donttest{
 #'
+#' # First, run the data of the example of the knobi_fit function
+#' library(knobi)
+#' data(knobi_dataset)
+#' 
 #' # First, run the example of knobi_fit function
+#' data(knobi_results) # loading results of the knobi_fit example
 #'
 #' # Then, provide environmental data series
 #'

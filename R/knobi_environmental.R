@@ -1,0 +1,25 @@
+#' @title knobi_env results
+#'
+#' @description
+#' 
+#' Results of the \code{\link{knobi_env}} first example, to be used in the other functions' exemples
+#' 
+#' @details The results can be obtained using the following R code:
+#' 
+#' \preformatted{
+#' data(knobi_dataset)
+#' data(knobi_results)
+#' Env <- knobi_dataset$Env
+#' years <- knobi_results$df$Year
+#' ind <- which(Env[,1]==years[1])
+#' ind1 <- which(Env[,1]==years[length(years)])
+#' nlag <- 5
+#' Env <- Env[(ind-nlag):ind1,]
+#' data <- list(env=data.frame(AMO=Env$AMO,NAO=Env$NAO),years=Env$years)
+#' control <- list(nlag=nlag)
+#' knobi_environmental <- knobi_env(knobi_results,data,control)
+#' }
+#'
+#' @usage data(knobi_environmental)
+
+"knobi_environmental"

@@ -44,7 +44,9 @@ As described in the \code{\link{knobi_env}} function details, in the case of the
 library(knobi)
 
 # See knobi_fit example to obtain the knobi_results object
-knobi_retrospectives<-knobi_retro(knobi_results,plot_out=T)  # default nR=5
+data(knobi_results) # loading results of the knobi_fit example
+
+knobi_retrospectives<-knobi_retro(knobi_results)  # default nR=5
 knobi_retrospectives
 
 knobi_retro(knobi_results,nR=3)
@@ -52,6 +54,8 @@ knobi_retro(knobi_results,yR=c(2010,2015))
 knobi_retro(knobi_results,yR=c(2010,2015),yR0=c(1995,2000))
 
 # See knobi_env example to obtain the env_results object
+data(knobi_environmental) # loading results of the knobi_env example
+
 knobi_retro(knobi_results,env_results=knobi_environmental,yR=c(2010,2015),yR0=c(1995,2000))
 
 }

@@ -30,6 +30,11 @@
 #'
 #' \donttest{
 #'
+#' library(knobi)
+#' data(knobi_results) # loading results of the knobi_fit example
+#' data(knobi_environmental) # loading results of the knobi_env example
+#' data(knobi_dataset)
+#'
 #' ### Projecting through catch with no environmental information
 #'
 #' # Then, create the data frame containing the selected catch for the projected
@@ -62,6 +67,7 @@
 #' # (ii) Constant AMO equal to last year's AMO with a 50% increment
 #' # (iii) Constant AMO equal to last year's AMO with a 50% decrease
 #'
+#' Env <- knobi_dataset$Env
 #' last_AMO <- Env$AMO[length(Env$AMO)]
 #' env <- data.frame( AMOi=rep(last_AMO,5),
 #'                    AMOii=rep(last_AMO*1.5,5),
@@ -87,18 +93,18 @@
 #'
 #' ### Through fishing mortality with environmental information
 #'
-#' knobi_proj(knobi_results, f=f[1:5,], env_results=env_results, env=env)
+#' knobi_proj(knobi_results, f=f[1:5,], env_results=knobi_environmental, env=env)
 #'
 #'
 #' # In case of multicovar<-TRUE in knobi_env, a list is required in which
 #' # each item is a data frame for each environmental scenario
 #'
-#' env<-list(climate_1=data.frame(AMO=c(0.2,0.2,0.3,0.3,0.4),
-#'                               NAO=c(0.2,0.2,0.3,0.3,0.4)),
-#'           climate_2=data.frame(AMO=c(0.2,0.3,0.4,0.5,0.6),
-#'                               NAO=c(0.2,0.2,0.3,0.3,0.4)))
-#'
-#' knobi_proj(knobi_results, knobi_environmental2, c=C, env=env)
+#' # env<-list(climate_1=data.frame(AMO=c(0.2,0.2,0.3,0.3,0.4),
+#' #                                NAO=c(0.2,0.2,0.3,0.3,0.4)),
+#' #           climate_2=data.frame(AMO=c(0.2,0.3,0.4,0.5,0.6),
+#' #                                NAO=c(0.2,0.2,0.3,0.3,0.4)))
+#' # 
+#' # knobi_proj(knobi_results, knobi_environmental2, c=C, env=env)
 #' }
 #'
 #' @export
